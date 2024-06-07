@@ -30,6 +30,7 @@
 #include "ds3231.h"
 #include "lcd.h"
 #include "led7Seg.h"
+#include "button.h"
 
 /* USER CODE END Includes */
 
@@ -59,13 +60,23 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void debugSystem(void);
 void initSystem(void);
-void displayTime(void);
-void updateTime(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date, uint8_t month, uint8_t year);
+void displayTime(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date, uint8_t month, uint8_t year);
+void setTime(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date, uint8_t month, uint8_t year);
+void setAlarm(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+enum State
+{
+    Mode_init,
+    Mode_running,
+    Mode_config_time,
+    Mode_config_alarm
+};
+enum State current_mode = Mode_init;
+enum State previous_mode = Mode_init;
 
 /* USER CODE END 0 */
 
@@ -106,9 +117,13 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   initSystem();
-  sTimer2Set(1000, 500);
+
+  setTime(0, 0, 0, 4, 5, 6, 24);
+
+  sTimer4Set(1000, 50); // interrupt every 50ms
+  sTimer2Set(0, 500); // interrupt every 500ms
+
   lcdClear(WHITE);
-  updateTime(30, 47, 15, 7, 27, 4, 24);
 
   /* USER CODE END 2 */
 
@@ -116,11 +131,45 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if(sTimer4GetFlag())
+	  {
+		  buttonScan();
+	  }
+
 	  if(sTimer2GetFlag())
 	  {
 		  debugSystem();
-		  ds3231ReadTime();
-		  displayTime();
+
+		  switch (current_mode)
+		  {
+		  case Mode_init:
+		  {
+			  current_mode = Mode_config_time;
+		  }
+		  case Mode_running:
+		  {
+			  ds3231ReadTime();
+
+			  if(current_mode != previous_mode)
+			  {
+				  lcdClear(WHITE);
+				  previous_mode = current_mode;
+			  }
+//			  displayTime();
+		  }
+		  case Mode_config_time:
+		  {
+
+		  }
+		  case Mode_config_alarm:
+		  {
+
+		  }
+		  default:
+		  {
+			  current_mode = Mode_init;
+		  }
+		  }
 	  }
 
     /* USER CODE END WHILE */
@@ -188,26 +237,28 @@ void initSystem()
 	initLCD();
 	initLed7Seg();
 	initds3231();
+	initButton();
 }
-void updateTime(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date, uint8_t month, uint8_t year)
+void setTime(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date, uint8_t month, uint8_t year)
 {
-	ds3231Write(ADDRESS_SEC, second);
-	ds3231Write(ADDRESS_MIN, minute);
-	ds3231Write(ADDRESS_HOUR, hour);
-	ds3231Write(ADDRESS_DAY, day);
-	ds3231Write(ADDRESS_DATE, date);
-	ds3231Write(ADDRESS_MONTH, month);
-	ds3231Write(ADDRESS_YEAR, year);
+	ds3231SetSec(second);
+	ds3231SetMin(minute);
+	ds3231SetHour(hour);
+	ds3231SetDay(day);
+	ds3231SetDate(date);
+	ds3231SetMonth(month);
+	ds3231SetYear(year);
 }
-void displayTime()
+
+void displayTime(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date, uint8_t month, uint8_t year)
 {
-	lcdShowIntNum(70, 100, ds3231_hours, 2, GREEN, WHITE, 24);
-	lcdShowIntNum(110, 100, ds3231_min, 2, GREEN, WHITE, 24);
-	lcdShowIntNum(150, 100, ds3231_sec, 2, GREEN, WHITE, 24);
-	lcdShowIntNum(20, 130, ds3231_day, 2, BLACK, WHITE, 24);
-	lcdShowIntNum(70, 130, ds3231_date, 2, BLACK, WHITE, 24);
-	lcdShowIntNum(110, 130, ds3231_month, 2, BLACK, WHITE, 24);
-	lcdShowIntNum(150, 130, ds3231_year, 2, BLACK, WHITE, 24);
+	lcdShowIntNum(70, 100, current_time.hour, 2, GREEN, WHITE, 24);
+	lcdShowIntNum(110, 100, current_time.minute, 2, GREEN, WHITE, 24);
+	lcdShowIntNum(150, 100, current_time.second, 2, GREEN, WHITE, 24);
+	lcdShowIntNum(20, 130, current_time.day, 2, BLACK, WHITE, 24);
+	lcdShowIntNum(70, 130, current_time.date, 2, BLACK, WHITE, 24);
+	lcdShowIntNum(110, 130, current_time.month, 2, BLACK, WHITE, 24);
+	lcdShowIntNum(150, 130, current_time.year, 2, BLACK, WHITE, 24);
 }
 
 /* USER CODE END 4 */

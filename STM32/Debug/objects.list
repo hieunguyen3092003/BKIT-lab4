@@ -1,3 +1,4 @@
+"./Core/Src/button.o"
 "./Core/Src/ds3231.o"
 "./Core/Src/fsmc.o"
 "./Core/Src/gpio.o"

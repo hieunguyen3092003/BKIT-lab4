@@ -63,8 +63,8 @@ all: main-build
 main-build: lab4.elf secondary-outputs
 
 # Tool invocations
-lab4.elf lab4.map: $(OBJS) $(USER_OBJS) /Users/ngtrunghieu/Downloads/BKIT-lab4/STM32/STM32F407ZGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "lab4.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/ngtrunghieu/Downloads/BKIT-lab4/STM32/STM32F407ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="lab4.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+lab4.elf lab4.map: $(OBJS) $(USER_OBJS) B:\BKIT\BKIT-lab4\STM32\STM32F407ZGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "lab4.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"B:\BKIT\BKIT-lab4\STM32\STM32F407ZGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="lab4.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

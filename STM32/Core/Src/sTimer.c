@@ -9,6 +9,10 @@
 #include "tim.h"
 #include "led7Seg.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif /* __cplusplus */
+
 void initTimer2(void);
 void initTimer4(void);
 
@@ -111,3 +115,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		led7SegDisplay();
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
