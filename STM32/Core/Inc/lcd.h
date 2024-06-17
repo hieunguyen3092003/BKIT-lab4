@@ -11,6 +11,10 @@
 /* Includes */
 #include "gpio.h"
 
+/* LCD size */
+#define LCD_WIDTH	240
+#define LCD_HEIGHT	320
+
 /* Constants */
 #define DFT_SCAN_DIR  L2R_U2D
 
@@ -86,9 +90,11 @@ void lcdDrawRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
 void lcdShowChar(uint16_t x, uint16_t y, uint8_t character, uint16_t fc,
 		uint16_t bc, uint8_t sizey, uint8_t mode);
 void lcdShowIntNum(uint16_t x, uint16_t y, uint16_t num, uint8_t len,
-		uint16_t fc, uint16_t bc, uint8_t sizey);
+		uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode);
+void lcdShowIntNumCenter(uint16_t x, uint16_t y, uint16_t num, uint8_t len,
+		uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode);
 void lcdShowFloatNum(uint16_t x, uint16_t y, float num, uint8_t len,
-		uint16_t fc, uint16_t bc, uint8_t sizey);
+		uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode);
 
 void lcdShowPicture(uint16_t x, uint16_t y, uint16_t length, uint16_t width,
 		const uint8_t pic[]);

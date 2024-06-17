@@ -8,6 +8,11 @@
 #include "utils.h"
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 uint8_t BCD2DEC(uint8_t data);
 uint8_t DEC2BCD(uint8_t data);
 
@@ -28,3 +33,7 @@ uint8_t DEC2BCD(uint8_t data)
 {
 	return (data / 10) << 4 | (data % 10);
 }
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

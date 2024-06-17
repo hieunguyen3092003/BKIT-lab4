@@ -1,2 +1,2 @@
-../Core/Src/utils.c:18:9:BCD2DEC	1
-../Core/Src/utils.c:27:9:DEC2BCD	1
+../Core/Src/utils.c:23:9:BCD2DEC	1
+../Core/Src/utils.c:32:9:DEC2BCD	1

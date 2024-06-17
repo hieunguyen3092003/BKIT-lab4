@@ -8,6 +8,11 @@
 #include "led7Seg.h"
 #include "spi.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 void initLed7Seg(void);
 void led7SegTurnOff(uint8_t position);
 void led7SegSetDigit(uint8_t num, uint8_t position, uint8_t show_dot);
@@ -140,10 +145,14 @@ void led7SegDebugTurnOn(uint8_t index)
  *            	@arg 8
  * @retval None
  */
-void Led7SegDebugTurnOff(uint8_t index)
+void led7SegDebugTurnOff(uint8_t index)
 {
 	if (index >= 6 && index <= 8)
 	{
 		spi_buffer &= ~(1 << (index - 6));
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

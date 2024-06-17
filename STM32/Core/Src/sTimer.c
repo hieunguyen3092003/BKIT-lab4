@@ -10,7 +10,8 @@
 #include "led7Seg.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C"
+{
 #endif /* __cplusplus */
 
 void initTimer2(void);

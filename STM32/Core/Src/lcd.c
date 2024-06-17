@@ -12,6 +12,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 unsigned char s[50];
 
 _lcd_dev lcddev;
@@ -114,7 +119,7 @@ void lcdFill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend,
 }
 
 /**
- * @brief  Fill a pixel with a color
+ * @brief  Fill 1 pixel with a color
  * @param  x X coordinate
  * @param  y Y coordinate
  * @param  color Color to fill
@@ -186,8 +191,18 @@ void lcdDrawRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2,
 	lcdDrawLine(x2, y1, x2, y2, color);
 }
 
-void lcdShowChar(uint16_t x, uint16_t y, uint8_t character, uint16_t fc,
-		uint16_t bc, uint8_t sizey, uint8_t mode) {
+/**
+ * @param x horizontal starting position for drawing the character
+ * @param y vertical starting position for drawing the character
+ * @param character ASCII value of the character to be displayed
+ * @param fc foreground color of the character
+ * @param bc background color of the character
+ * @param sizey height (16, 24, 32) of the character in pixels (sizex is typically half the height)
+ * @param mode determine whether the background color is applied
+ * (!= 0 only the foreground color pixels, skipping the background)
+ */
+void lcdShowChar(uint16_t x, uint16_t y, uint8_t character, uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode)
+{
 	uint8_t temp, sizex, t, m = 0;
 	uint16_t i, TypefaceNum;
 	uint16_t x0 = x;
@@ -238,8 +253,19 @@ uint32_t mypow(uint8_t m, uint8_t n) {
 	return result;
 }
 
+/**
+ * @param x, y coordinate that the number start
+ * @param num number to be displayed on the LCD
+ * @param len The length of the number to be displayed
+ * @param fc color of the digits
+ * @param bc background color used behind the digits
+ * @param sizey height (16, 24, 32) font size used for displaying the digits
+ * @param mode determine whether the background color is applied
+ * (!= 0 only the foreground color pixels, skipping the background)
+ */
 void lcdShowIntNum(uint16_t x, uint16_t y, uint16_t num, uint8_t len,
-		uint16_t fc, uint16_t bc, uint8_t sizey) {
+		uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode)
+{
 	uint8_t t, temp;
 	uint8_t enshow = 0;
 	uint8_t sizex = sizey / 2;
@@ -247,18 +273,40 @@ void lcdShowIntNum(uint16_t x, uint16_t y, uint16_t num, uint8_t len,
 		temp = (num / mypow(10, len - t - 1)) % 10;
 		if (enshow == 0 && t < (len - 1)) {
 			if (temp == 0) {
-				lcdShowChar(x + t * sizex, y, ' ', fc, bc, sizey, 0);
+				lcdShowChar(x + t * sizex, y, '0', fc, bc, sizey, mode); // modify which symbol to display in blank space
 				continue;
 			} else
 				enshow = 1;
 
 		}
-		lcdShowChar(x + t * sizex, y, temp + 48, fc, bc, sizey, 0);
+		lcdShowChar(x + t * sizex, y, temp + 48, fc, bc, sizey, mode);
 	}
 }
+void lcdShowIntNumCenter(uint16_t x, uint16_t y, uint16_t num, uint8_t len,
+		uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode)
+{
+    uint8_t t, temp;
+    uint8_t enshow = 0;
+    uint8_t sizex = sizey / 2;
+    uint16_t total_width = len * sizex;
+    uint16_t start_x = x - (total_width / 2);
+    uint16_t start_y = y - (sizey / 2);
 
+    for (t = 0; t < len; t++) {
+        temp = (num / mypow(10, len - t - 1)) % 10;
+        if (enshow == 0 && t < (len - 1)) {
+            if (temp == 0) {
+                lcdShowChar(start_x + t * sizex, start_y, '0', fc, bc, sizey, mode); // Display '0' instead of blank space
+                continue;
+            } else
+                enshow = 1;
+        }
+        lcdShowChar(start_x + t * sizex, start_y, temp + 48, fc, bc, sizey, mode);
+    }
+}
 void lcdShowFloatNum(uint16_t x, uint16_t y, float num, uint8_t len,
-		uint16_t fc, uint16_t bc, uint8_t sizey) {
+		uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode)
+{
 	uint8_t t, temp, sizex;
 	uint16_t num1;
 	sizex = sizey / 2;
@@ -266,11 +314,11 @@ void lcdShowFloatNum(uint16_t x, uint16_t y, float num, uint8_t len,
 	for (t = 0; t < len; t++) {
 		temp = (num1 / mypow(10, len - t - 1)) % 10;
 		if (t == (len - 2)) {
-			lcdShowChar(x + (len - 2) * sizex, y, '.', fc, bc, sizey, 0);
+			lcdShowChar(x + (len - 2) * sizex, y, '.', fc, bc, sizey, mode);
 			t++;
 			len += 1;
 		}
-		lcdShowChar(x + t * sizex, y, temp + 48, fc, bc, sizey, 0);
+		lcdShowChar(x + t * sizex, y, temp + 48, fc, bc, sizey, mode);
 	}
 }
 
@@ -427,6 +475,12 @@ static void _draw_circle_8(int xc, int yc, int x, int y, uint16_t c) {
 	lcdDrawPoint(xc - y, yc - x, c);
 }
 
+/**
+ * @param xc, yc Center coordinates of the circle (xc is horizontal direction)
+ * @param c Color to be used for drawing the circle.
+ * @param r radius of the circle
+ * @param Boolean indicating whether to fill the circle (non-zero value) or just draw the outline (zero value).
+ */
 void lcdDrawCircle(int xc, int yc, uint16_t c, int r, int fill)
 {
 	int x = 0, y = r, yi, d;
@@ -460,22 +514,39 @@ void lcdDrawCircle(int xc, int yc, uint16_t c, int r, int fill)
 	}
 }
 
+/**
+ * @param x x-coordinate where the string display.
+ * @param y y-coordinate where the string display.
+ * @param *str Pointer to the string that needs to be displayed
+ * @param fc Foreground color of the text (font color)
+ * @param bc Background color behind the text
+ * @param sizey Height of the characters (can be 16, 24, 32)
+ * @param mode determine whether the background color is applied
+ * (!= 0 only the foreground color pixels, skipping the background)
+ */
 void lcdShowString(uint16_t x, uint16_t y, char *str, uint16_t fc, uint16_t bc,
-		uint8_t sizey, uint8_t mode) {
+		uint8_t sizey, uint8_t mode)
+{
 	uint16_t x0 = x;
-	uint8_t bHz = 0;
-	while (*str != 0) {
-		if (!bHz) {
+	uint8_t bHz = 0; // used to handle characters that are more than one byte long (e.g., Chinese characters)
+	while (*str != 0)
+	{
+		if (!bHz)
+		{
 			if (x > (lcddev.width - sizey / 2) || y > (lcddev.height - sizey))
 				return;
 			if (*str > 0x80)
 				bHz = 1;
-			else {
-				if (*str == 0x0D) {
+			else
+			{
+				if (*str == 0x0D)
+				{
 					y += sizey;
 					x = x0;
 					str++;
-				} else {
+				}
+				else
+				{
 					lcdShowChar(x, y, *str, fc, bc, sizey, mode);
 					x += sizey / 2;
 				}
@@ -484,10 +555,41 @@ void lcdShowString(uint16_t x, uint16_t y, char *str, uint16_t fc, uint16_t bc,
 		}
 	}
 }
+/**
+ * @param x x-coordinate where the string should be centered.
+ * @param y y-coordinate where the string should be centered.
+ * @param *str Pointer to the string that needs to be displayed.
+ * @param fc Foreground color of the text (font color).
+ * @param bc Background color behind the text.
+ * @param sizey Height of the characters (can be 16, 24, 32).
+ * @param mode Determine whether the background color is applied
+ * (!= 0 only the foreground color pixels, skipping the background).
+ */
+void lcdShowStringCenter(uint16_t x, uint16_t y, char *str, uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode) {
+    uint8_t sizex = sizey / 2;
+    uint16_t str_len = 0;
+    char *ptr = str;
 
-void lcdShowStringCenter(uint16_t x, uint16_t y, char *str, uint16_t fc, uint16_t bc,
-		uint8_t sizey, uint8_t mode) {
-	uint16_t len = strlen((const char*) str);
-	uint16_t x1 = (lcddev.width - len * 8) / 2;
-	lcdShowString(x + x1, y, str, fc, bc, sizey, mode);
+    // Calculate the length of the string
+    while (*ptr != '\0') {
+        if (*ptr > 0x80) {
+            // If the character is a multibyte character (e.g., Chinese character)
+            str_len += 2;
+            ptr++;
+        } else {
+            str_len++;
+        }
+        ptr++;
+    }
+
+    uint16_t total_width = str_len * sizex;
+    uint16_t start_x = x - (total_width / 2);
+    uint16_t start_y = y - (sizey / 2);
+
+    lcdShowString(start_x, start_y, str, fc, bc, sizey, mode);
 }
+
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

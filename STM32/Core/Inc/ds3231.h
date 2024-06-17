@@ -35,6 +35,7 @@ typedef uint8_t bool;
 #define ALARM2_DATE			0x0d
 
 #define DS3231_REG_CONTROL 	0x0e
+/* shift bit */
 #define DS3231_EOSC			7
 #define DS3231_BBSQW		6
 #define DS3231_CONV			5
@@ -45,6 +46,7 @@ typedef uint8_t bool;
 #define DS3231_A1IE			0
 
 #define DS3231_REG_STATUS	0x0f
+/* shift bit */
 #define DS3231_OSF			7
 #define DS3231_EN32KHZ		3
 #define DS3231_BSY			2
@@ -76,28 +78,13 @@ typedef struct
 	uint8_t date;
 	uint8_t month;
 	uint16_t year;
+
+	bool alarm_on;
 }Time;
 extern Time current_time;
 extern Time set_time;
 extern Time set_alarm_1;
 extern Time set_alarm_2;
-
-/*
- * This variable is used for deeper interfere this lab currently not used
- * please view this site for more intel: https://github.com/hieunguyen3092003/BKIT-ExampleDS3231.git
- */
-typedef enum DS3231_Rate{
-	DS3231_1HZ,
-	DS3231_1024HZ,
-	DS3231_4096HZ,
-	DS3231_8192HZ
-}DS3231_Rate;
-
-typedef enum DS3231_InterruptMode
-{
-	DS3231_SQUARE_WAVE_INTERRUPT,
-	DS3231_ALARM_INTERRUPT
-}DS3231_InterruptMode;
 
 typedef enum DS3231_State
 {
@@ -124,10 +111,31 @@ typedef enum D3231_Alarm2Mode
 	DS3231_A2_MATCH_M_H_DAY = 0x40
 }DS3231_Alarm2Mode;
 
+/*
+ * This variable is used for deeper interfere this lab currently not used
+ * please view this site for more intel: https://github.com/hieunguyen3092003/BKIT-ExampleDS3231.git
+ */
+typedef enum DS3231_Rate{
+	DS3231_1HZ,
+	DS3231_1024HZ,
+	DS3231_4096HZ,
+	DS3231_8192HZ
+}DS3231_Rate;
+
+typedef enum DS3231_InterruptMode
+{
+	DS3231_SQUARE_WAVE_INTERRUPT,
+	DS3231_ALARM_INTERRUPT
+}DS3231_InterruptMode;
+
 /* Functions */
 void initds3231(void);
+
+uint8_t ds3231Read(uint8_t address);
+
 void ds3231ReadTime(void);
 float ds3231ReadTemp(void);
+
 void ds3231SetSec(uint8_t second);
 void ds3231SetMin(uint8_t minute);
 void ds3231SetHour(uint8_t hour);
@@ -136,5 +144,27 @@ void ds3231SetDate(uint8_t date);
 void ds3231SetMonth(uint8_t month);
 void ds3231SetYear(uint16_t year);
 
+/**
+ * these 2 functions only used when INT/SQW pin connects to MCU however this stm32f407ZGTx do not connected this pin
+ */
+//void ds3231EnableA1(DS3231_State enable);
+//void ds3231EnableA2(DS3231_State enable);
+
+void ds3231SetModeA1(DS3231_Alarm1Mode alarmMode);
+void ds3231SetModeA2(DS3231_Alarm2Mode alarmMode);
+
+void ds3231SetSecA1(uint8_t second);
+void ds3231SetMinA1(uint8_t minute);
+void ds3231SetHourA1(uint8_t hour);
+void ds3231SetDayA1(uint8_t day);
+void ds3231SetDateA1(uint8_t date);
+
+void ds3231SetMinA2(uint8_t minute);
+void ds3231SetHourA2(uint8_t hour);
+void ds3231SetDayA2(uint8_t day);
+void ds3231SetDateA2(uint8_t date);
+
+bool ds3231GetFlagA1(void);
+bool ds3231GetFlagA2(void);
 
 #endif /* INC_DS3231_H_ */
