@@ -116,7 +116,7 @@ void led7SegSetColon(uint8_t status)
  */
 void led7SegTurnOff(uint8_t position)
 {
-	led_7seg[position] = 0x00;
+	led_7seg[position] = 0xff;
 }
 
 /**

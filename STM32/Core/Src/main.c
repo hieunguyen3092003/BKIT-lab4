@@ -33,6 +33,7 @@
 #include "button.h"
 #include <math.h>
 #include <string.h>
+#include <stdint.h>
 
 /* USER CODE END Includes */
 
@@ -65,13 +66,38 @@ void debugSystem(void);
 void initSystem(void);
 void displayClock(int x_coor, int y_coor, int radius);
 void displayLocation(int y_coor, char *str, char *GMT_str, uint8_t char_size);
-void displayClockWise(int x_coor, int y_coor, int radius, const uint8_t *second, const uint8_t *minute, const uint8_t *hour, uint16_t color_sec_clw, uint16_t color_min_clw, uint16_t color_hour_clw);
-void displayTime(int x_coor, int y_coor, const uint8_t *second, const uint8_t *minute, const uint8_t *hour, const uint8_t *day, const uint8_t *date, const uint8_t *month, const uint16_t *year, float temperature,
-		uint8_t char_size, uint8_t subchar_size, uint16_t color_sec, uint16_t color_min, uint16_t color_hour, uint16_t color_day, uint16_t color_date, uint16_t color_month, uint16_t color_year);
+
+float displaySecClockwise(int x_coor, int y_coor, int length, const uint8_t *second, uint16_t color);
+float displayMinClockwise(int x_coor, int y_coor, int length, const uint8_t *second, const uint8_t *minute, uint16_t color);
+float displayHourClockwise(int x_coor, int y_coor, int length, const uint8_t *minute, const uint8_t *hour, uint16_t color);
+
+void displayTime(int x_coor, int y_coor, const uint8_t *second, const uint8_t *minute, const uint8_t *hour,
+		uint8_t char_size, uint16_t color_sec, uint16_t color_min, uint16_t color_hour);
+void displayDate(int x_coor, int y_coor, const uint8_t *date, const uint8_t *month, const uint16_t *year,
+		uint8_t char_size, uint16_t color_date, uint16_t color_month, uint16_t color_year);
+void displayTemp(int x_coor, int y_coor, float temperature, uint8_t char_size, uint16_t color_temp);
+void displayDay(int x_coor, int y_coor, const uint8_t *day, uint8_t char_size, uint16_t color_day);
+
 void displayTimeLed7Seg(const uint8_t *second, const uint8_t *minute, const uint8_t *hour);
 void setTime(uint8_t *second, uint8_t *minute, uint8_t *hour, uint8_t *day, uint8_t *date, uint8_t *month, uint16_t *year);
 void setAlarm1(uint8_t second, uint8_t minute, uint8_t hour, uint8_t day, uint8_t date);
 void setAlarm2(uint8_t minute, uint8_t hour, uint8_t day, uint8_t date);
+
+void increaseSec(void);
+void decreaseSec(void);
+void increaseMin(void);
+void decreaseMin(void);
+void increaseHour(void);
+void decreaseHour(void);
+void increaseDay(void);
+void decreaseDay(void);
+void increaseDate(void);
+void decreaseDate(void);
+void increaseMonth(void);
+void decreaseMonth(void);
+void increaseYear(void);
+void decreaseYear(void);
+int getDaysInMonth(int month, int year);
 
 /* USER CODE END PFP */
 
@@ -147,6 +173,8 @@ int main(void)
   sTimer4Set(1000, 50); // interrupt every 50ms
   sTimer2Set(0, 500); // interrupt every 500ms
 
+  int clock_radius = 100;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -169,6 +197,7 @@ int main(void)
 		  current_time.alarm_on = false;
 
 		  current_mode = Mode_config_time;
+
 		  break;
 	  }
 	  case Mode_word_clock:
@@ -176,19 +205,44 @@ int main(void)
 		  if(previous_mode != current_mode)
 		  {
 			  lcdClear(WHITE);
-			  displayClock(LCD_WIDTH / 2, 110, 100);
-//			  displayLocation((240 + ((320 - 240) / 2) + 20), "HaNoi", "GMT +7", 24);
+			  clock_radius = 100;
+			  displayClock(LCD_WIDTH / 2, 110, clock_radius);
+
+			  (void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &current_time.second, BLUE);
+			  (void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &current_time.second, &current_time.minute, BLACK);
+			  (void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &current_time.minute, &current_time.hour, RED);
+
+			  displayTime(LCD_WIDTH / 2, 240, &current_time.second, &current_time.minute, &current_time.hour, 32, BLACK, BLACK, BLACK);
+			  displayDate(LCD_WIDTH / 2, 240 + 32, &current_time.date, &current_time.month, &current_time.year, 24, DARKBLUE, DARKBLUE, DARKBLUE);
+			  displayDay(20, 320 - 10 - 24, &current_time.day, 24, RED);
+
 			  previous_mode = current_mode;
 		  }
 
 		  if(sTimer2GetFlag())
 		  {
 			  debugSystem();
+
 			  ds3231ReadTime();
 
-			  displayClockWise(LCD_WIDTH / 2, 110, 100, &current_time.second, &current_time.minute, &current_time.hour, BLUE, RED, BLACK);
-			  displayTime(LCD_WIDTH / 2, 240, &current_time.second, &current_time.minute, &current_time.hour, &current_time.day, &current_time.date, &current_time.month, &current_time.year, ds3231ReadTemp(), 32, 24, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK);
+			  (void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &current_time.second, BLUE);
+			  (void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &current_time.second, &current_time.minute, BLACK);
+			  (void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &current_time.minute, &current_time.hour, RED);
+
+			  displayTime(LCD_WIDTH / 2, 240, &current_time.second, &current_time.minute, &current_time.hour, 32, BLACK, BLACK, BLACK);
+			  if(current_time.second == 0 && current_time.minute == 0 && current_time.hour == 0)
+			  {
+				  displayDate(LCD_WIDTH / 2, 240 + 32, &current_time.date, &current_time.month, &current_time.year, 24, DARKBLUE, DARKBLUE, DARKBLUE);
+				  displayDay(20, 320 - 34, &current_time.day, 24, RED);
+			  }
+
 			  displayTimeLed7Seg(&current_time.second, &current_time.minute, &current_time.hour);
+		  }
+
+		  if(button_count[12] == 1)
+		  {
+			  current_mode = Mode_config_time;
+			  button_count[12] += 1;
 		  }
 
 		  break;
@@ -198,7 +252,6 @@ int main(void)
 		  if(previous_mode != current_mode)
 		  {
 			  ds3231ReadTime();
-
 			  set_time.second = current_time.second;
 			  set_time.minute = current_time.minute;
 			  set_time.hour = current_time.hour;
@@ -208,7 +261,11 @@ int main(void)
 			  set_time.year = current_time.year;
 
 			  lcdClear(WHITE);
-			  displayClock(LCD_WIDTH / 2, 110, 100);
+			  clock_radius = 100;
+			  displayClock(LCD_WIDTH / 2, 110, clock_radius);
+
+			  current_mode_config = Mode_config_second;
+			  previous_mode_config = Mode_config_minute;
 
 			  previous_mode = current_mode;
 		  }
@@ -219,9 +276,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, RED, LIGHTBLUE, LIGHTBLUE);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLACK);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, BLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, RED, BLACK, BLACK);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, DARKBLUE);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, DARKBLUE);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, RED, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -246,6 +309,31 @@ int main(void)
 				if(button_count[11] % 30 == 1) // check button is held 1.5 second
 				{
 					current_mode_config = Mode_config_minute;
+					button_count[11] += 1;
+				}
+				else if(button_count[3] % 20 == 1)
+				{
+					increaseSec();
+
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLACK);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, BLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, RED);
+
+				    displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, RED, BLACK, BLACK);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseSec();
+
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLACK);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, BLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, RED);
+
+				    displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, RED, BLACK, BLACK);
+
+					button_count[7] += 1;
 				}
 
 				break;
@@ -254,9 +342,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, LIGHTBLUE, RED, LIGHTBLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, BLUE);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, RED, BLACK);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, DARKBLUE);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, DARKBLUE);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, BLACK, RED, BLACK, BLACK, BLACK, BLACK, BLACK);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -280,10 +374,36 @@ int main(void)
 				if(button_count[11] % 30 == 1) // check button is held 1.5 second
 				{
 					current_mode_config = Mode_config_hour;
+					button_count[11] += 1;
 				}
 				else if(button_count[15] % 30 == 1)
 				{
 					current_mode_config = Mode_config_second;
+					button_count[15] += 1;
+				}
+				else if(button_count[3] % 20 == 1)
+				{
+					increaseMin();
+
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, BLUE);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, RED, BLACK);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseMin();
+
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, BLUE);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, RED, BLACK);
+
+					button_count[7] += 1;
 				}
 
 				break;
@@ -292,9 +412,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, LIGHTBLUE, LIGHTBLUE, RED);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, RED);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, DARKBLUE);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, DARKBLUE);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, BLACK, BLACK, RED, BLACK, BLACK, BLACK, BLACK);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -318,10 +444,36 @@ int main(void)
 				if(button_count[11] % 30 == 1) // check button is held 1.5 second
 				{
 					current_mode_config = Mode_config_day;
+					button_count[11] += 1;
 				}
 				else if(button_count[15] % 30 == 1)
 				{
 					current_mode_config = Mode_config_minute;
+					button_count[15] += 1;
+				}
+				else if(button_count[3] % 20 == 1) // check button is held 1 second
+				{
+					increaseHour();
+
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, RED);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseHour();
+
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, RED);
+
+					button_count[7] += 1;
 				}
 
 				break;
@@ -330,9 +482,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, LIGHTBLUE, LIGHTBLUE, LIGHTBLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, BLACK);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, DARKBLUE);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, RED);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, BLACK, BLACK, BLACK, RED, BLACK, BLACK, BLACK);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -340,11 +498,30 @@ int main(void)
 				if(button_count[11] % 30 == 1) // check button is held 1.5 second
 				{
 					current_mode_config = Mode_config_date;
+					button_count[11] += 1;
 				}
 				else if(button_count[15] % 30 == 1)
 				{
 					current_mode_config = Mode_config_hour;
+					button_count[15] += 1;
 				}
+				else if(button_count[3] % 20 == 1) // check button is held 1 second
+				{
+					increaseDay();
+
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, RED);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseDay();
+
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, RED);
+
+					button_count[7] += 1;
+				}
+
 
 				break;
 			}
@@ -352,9 +529,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, LIGHTBLUE, LIGHTBLUE, LIGHTBLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, BLACK);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, RED, DARKBLUE, DARKBLUE);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, DARKBLUE);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, BLACK, BLACK, BLACK, BLACK, RED, BLACK, BLACK);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -362,10 +545,28 @@ int main(void)
 				if(button_count[11] % 30 == 1) // check button is held 1.5 second
 				{
 					current_mode_config = Mode_config_month;
+					button_count[11] += 1;
 				}
 				else if(button_count[15] % 30 == 1)
 				{
 					current_mode_config = Mode_config_day;
+					button_count[15] += 1;
+				}
+				else if(button_count[3] % 20 == 1) // check button is held 1 second
+				{
+					increaseDate();
+
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, RED, DARKBLUE, DARKBLUE);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseDate();
+
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, RED, DARKBLUE, DARKBLUE);
+
+					button_count[7] += 1;
 				}
 
 				break;
@@ -374,9 +575,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, LIGHTBLUE, LIGHTBLUE, LIGHTBLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, BLACK);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, RED, DARKBLUE);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, DARKBLUE);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, BLACK, BLACK, BLACK, BLACK, BLACK, RED, BLACK);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -384,10 +591,28 @@ int main(void)
 				if(button_count[11] % 30 == 1) // check button is held 1.5 second
 				{
 					current_mode_config = Mode_config_year;
+					button_count[11] += 1;
 				}
 				else if(button_count[15] % 30 == 1)
 				{
 					current_mode_config = Mode_config_date;
+					button_count[15] += 1;
+				}
+				else if(button_count[3] % 20 == 1) // check button is held 1 second
+				{
+					increaseMonth();
+
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, RED, DARKBLUE);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseMonth();
+
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, RED, DARKBLUE);
+
+					button_count[7] += 1;
 				}
 
 				break;
@@ -396,9 +621,15 @@ int main(void)
 			{
 				if(previous_mode_config != current_mode_config)
 				{
-					displayClockWise(LCD_WIDTH / 2, 110, 100, &set_time.second, &set_time.minute, &set_time.hour, LIGHTBLUE, LIGHTBLUE, LIGHTBLUE);
+					(void)displaySecClockwise(LCD_WIDTH / 2, 110, clock_radius - 30, &set_time.second, BLACK);
+					(void)displayMinClockwise(LCD_WIDTH / 2, 110, clock_radius - 40, &set_time.second, &set_time.minute, BLUE);
+					(void)displayHourClockwise(LCD_WIDTH / 2, 110, clock_radius - 50, &set_time.minute, &set_time.hour, RED);
+
+					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, 32, BLACK, BLACK, BLACK);
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, RED);
+					displayDay(20, 320 - 10 - 24, &set_time.day, 24, DARKBLUE);
+
 					displayTimeLed7Seg(&set_time.second, &set_time.minute, &set_time.hour);
-					displayTime(LCD_WIDTH / 2, 240, &set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year, ds3231ReadTemp(), 32, 24, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, RED);
 
 					previous_mode_config = current_mode_config;
 				}
@@ -406,20 +637,39 @@ int main(void)
 				if(button_count[15] % 30 == 1)
 				{
 					current_mode_config = Mode_config_month;
+					button_count[15] += 1;
+				}
+				else if(button_count[3] % 20 == 1) // check button is held 1 second
+				{
+					increaseYear();
+
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, RED);
+
+					button_count[3] += 1;
+				}
+				else if(button_count[7] % 20 == 1)
+				{
+					decreaseYear();
+
+					displayDate(LCD_WIDTH / 2, 240 + 32, &set_time.date, &set_time.month, &set_time.year, 24, DARKBLUE, DARKBLUE, RED);
+
+					button_count[7] += 1;
 				}
 
 				break;
 			}
 		}
 
-		if(button_count[12] >= 1)
+		if(button_count[12] == 1)
 		{
 		  setTime(&set_time.second, &set_time.minute, &set_time.hour, &set_time.day, &set_time.date, &set_time.month, &set_time.year);
 		  current_mode = Mode_word_clock;
+		  button_count[12] += 1;
 		}
-		else if(button_count[14] >= 1)
+		else if(button_count[14] == 1)
 		{
 		  current_mode = Mode_word_clock;
+		  button_count[14] += 1;
 		}
 
 		break;
@@ -529,7 +779,7 @@ void displayClock(int x_coor, int y_coor, int radius)
 {
     const uint8_t char_size = 24;
 
-    lcdDrawCircle(x_coor, y_coor, BLUE, radius + 2, 1);
+    lcdDrawCircle(x_coor, y_coor, DARKBLUE, radius + 2, 1);
 	lcdDrawCircle(x_coor, y_coor, WHITE, radius, 1);
 
     for (int i = 0; i < 12; i++)
@@ -542,51 +792,65 @@ void displayClock(int x_coor, int y_coor, int radius)
     }
 }
 
-/*
- * @param	x_coor, y_coor coordinate of circle center
- * @param 	radius radius of a clock
- * @param	*second, *minute, *hour pointer to variable time store on struct Time
- * @param 	color_sec_clw, color_min_clw, color_hour_clw color of second, minute, hour clockwise
+/**
+ * @brief this function draw new clockwise and erased old clockwise
+ * @param x_coor, y_coor center of clock
+ * @param length length of clockwise
+ * @param *second, *minute a pointer to variable store time value
+ * @param color color of clockwise
+ * @return float angle of clockwise
  */
-void displayClockWise(int x_coor, int y_coor, int radius, const uint8_t *second, const uint8_t *minute, const uint8_t *hour, uint16_t color_sec_clw, uint16_t color_min_clw, uint16_t color_hour_clw)
+float displaySecClockwise(int x_coor, int y_coor, int length, const uint8_t *second, uint16_t color)
 {
-	static float angle_sec, angle_min, angle_hour;
-    int x, y;
+	static float angle_sec;
+	int x, y;
 
-    x = x_coor + (radius - 30) * sin(angle_sec);
-    y = y_coor + (radius - 30) * -cos(angle_sec);
+    x = x_coor + (length) * sin(angle_sec);
+    y = y_coor + (length) * -cos(angle_sec);
     lcdDrawLine(x_coor, y_coor, x, y, WHITE);
 
     angle_sec = (*second * 6) * (PI / 180);
-    x = x_coor + (radius - 30) * sin(angle_sec);
-    y = y_coor + (radius - 30) * -cos(angle_sec);
-    lcdDrawLine(x_coor, y_coor, x, y, color_sec_clw);
+    x = x_coor + (length) * sin(angle_sec);
+    y = y_coor + (length) * -cos(angle_sec);
+    lcdDrawLine(x_coor, y_coor, x, y, color);
 
-    if(angle_min != angle_sec)
-    {
-        x = x_coor + (radius - 40) * sin(angle_min);
-        y = y_coor + (radius - 40) * -cos(angle_min);
-        lcdDrawLine(x_coor, y_coor, x, y, WHITE);
-    }
-    angle_min = (*minute * 6) * (PI / 180);
-    x = x_coor + (radius - 40) * sin(angle_min);
-    y = y_coor + (radius - 40) * -cos(angle_min);
-    lcdDrawLine(x_coor, y_coor, x, y, color_min_clw);
+	return angle_sec;
+}
+float displayMinClockwise(int x_coor, int y_coor, int length, const uint8_t *second, const uint8_t *minute, uint16_t color)
+{
+	static float angle_min;
+	int x, y;
 
-    if(angle_hour != angle_sec && angle_hour != angle_min)
-    {
-        x = x_coor + (radius - 50) * sin(angle_hour);
-        y = y_coor + (radius - 50) * -cos(angle_hour);
-        lcdDrawLine(x_coor, y_coor, x, y, WHITE);
-    }
+	x = x_coor + (length) * sin(angle_min);
+	y = y_coor + (length) * -cos(angle_min);
+	lcdDrawLine(x_coor, y_coor, x, y, WHITE);
+
+    angle_min = ((*minute + *second / 60.0) * 6) * (PI / 180);
+    x = x_coor + (length) * sin(angle_min);
+    y = y_coor + (length) * -cos(angle_min);
+    lcdDrawLine(x_coor, y_coor, x, y, color);
+
+    return angle_min;
+}
+float displayHourClockwise(int x_coor, int y_coor, int length, const uint8_t *minute, const uint8_t *hour, uint16_t color)
+{
+	static float angle_hour;
+	int x, y;
+
+	x = x_coor + (length) * sin(angle_hour);
+	y = y_coor + (length) * -cos(angle_hour);
+	lcdDrawLine(x_coor, y_coor, x, y, WHITE);
+
     angle_hour = ((*hour % 12 + *minute / 60.0) * 30) * (PI / 180); // 360 degrees / 12 hours = 30 degrees per hour
-    x = x_coor + (radius - 50) * sin(angle_hour);
-    y = y_coor + (radius - 50) * -cos(angle_hour);
-    lcdDrawLine(x_coor, y_coor, x, y, color_hour_clw);
+    x = x_coor + (length) * sin(angle_hour);
+    y = y_coor + (length) * -cos(angle_hour);
+    lcdDrawLine(x_coor, y_coor, x, y, color);
+
+    return angle_hour;
 }
 
-void displayTime(int x_coor, int y_coor, const uint8_t *second, const uint8_t *minute, const uint8_t *hour, const uint8_t *day, const uint8_t *date, const uint8_t *month, const uint16_t *year, float temperature,
-		uint8_t char_size, uint8_t subchar_size, uint16_t color_sec, uint16_t color_min, uint16_t color_hour, uint16_t color_day, uint16_t color_date, uint16_t color_month, uint16_t color_year)
+void displayTime(int x_coor, int y_coor, const uint8_t *second, const uint8_t *minute, const uint8_t *hour,
+		uint8_t char_size, uint16_t color_sec, uint16_t color_min, uint16_t color_hour)
 {
 	lcdShowIntNumCenter(x_coor - char_size * 2, y_coor, *hour, 2, color_hour, WHITE, char_size, 0);
 	lcdShowIntNumCenter(x_coor, y_coor, *minute, 2, color_min, WHITE, char_size, 0);
@@ -594,24 +858,64 @@ void displayTime(int x_coor, int y_coor, const uint8_t *second, const uint8_t *m
 
 	lcdShowStringCenter(x_coor + char_size, y_coor, ":", BLACK, WHITE, char_size, 1);
 	lcdShowStringCenter(x_coor - (char_size * 2) + char_size, y_coor, ":", BLACK, WHITE, char_size, 1);
-
-//	if(*hour == 0 && *minute == 0 && *second == 0) // this case is false with settime
-//	{
-	lcdShowIntNumCenter(x_coor - subchar_size * 2, y_coor + char_size, *date, 2, color_date, WHITE, subchar_size, 0);
-	lcdShowIntNumCenter(x_coor, y_coor + char_size, *month, 2, color_month, WHITE, subchar_size, 0);
-	lcdShowIntNumCenter(x_coor + subchar_size * 2 + subchar_size / 2, y_coor + char_size, *year, 4, color_year, WHITE, subchar_size, 0);
-
-	lcdShowStringCenter(x_coor + subchar_size, y_coor + char_size, "/", BLACK, WHITE, subchar_size, 1);
-	lcdShowStringCenter(x_coor - (subchar_size * 2) + subchar_size, y_coor + char_size, "/", BLACK, WHITE, subchar_size, 1);
-//	}
-
-	return;
 }
 
-void displayLocation(int y_coor, char *str, char *GMT_str, uint8_t char_size)
+void displayDate(int x_coor, int y_coor, const uint8_t *date, const uint8_t *month, const uint16_t *year,
+		uint8_t char_size, uint16_t color_date, uint16_t color_month, uint16_t color_year)
 {
-	lcdShowString(20, y_coor - char_size / 2, str, BLACK, WHITE, char_size, 1);
-	lcdShowString(240 - 20 - (strlen(GMT_str) * (char_size / 2)), y_coor - char_size / 2, GMT_str, BLACK, WHITE, char_size, 1);
+	lcdShowIntNumCenter(x_coor - char_size * 2, y_coor, *date, 2, color_date, WHITE, char_size, 0);
+	lcdShowIntNumCenter(x_coor, y_coor, *month, 2, color_month, WHITE, char_size, 0);
+	lcdShowIntNumCenter(x_coor + char_size * 2 + char_size / 2.0, y_coor, *year, 4, color_year, WHITE, char_size, 0);
+
+	lcdShowStringCenter(x_coor + char_size, y_coor, "/", color_month, WHITE, char_size, 1);
+	lcdShowStringCenter(x_coor - (char_size * 2) + char_size, y_coor, "/", color_month, WHITE, char_size, 1);
+}
+
+void displayTemp(int x_coor, int y_coor, float temperature, uint8_t char_size, uint16_t color_temp)
+{
+	lcdShowFloatNum(x_coor, y_coor, temperature, 4, color_temp, WHITE, char_size, 0);
+	return;
+}
+void displayDay(int x_coor, int y_coor, const uint8_t *day, uint8_t char_size, uint16_t color_day)
+{
+	switch (*day)
+	{
+		case 1:
+		{
+			lcdShowString(x_coor, y_coor, "Sunday   ", color_day, WHITE, char_size, 0);
+			break;
+		}
+		case 2:
+		{
+			lcdShowString(x_coor, y_coor, "Monday   ", color_day, WHITE, char_size, 0);
+			break;
+		}
+		case 3:
+		{
+			lcdShowString(x_coor, y_coor, "Tuesday  ", color_day, WHITE, char_size, 0);
+			break;
+		}
+		case 4:
+		{
+			lcdShowString(x_coor, y_coor, "Wednesday", color_day, WHITE, char_size, 0);
+			break;
+		}
+		case 5:
+		{
+			lcdShowString(x_coor, y_coor, "Thursday ", color_day, WHITE, char_size, 0);
+			break;
+		}
+		case 6:
+		{
+			lcdShowString(x_coor, y_coor, "Friday", color_day, WHITE, char_size, 0);
+			break;
+		}
+		case 7:
+		{
+			lcdShowString(x_coor, y_coor, "Saturday", color_day, WHITE, char_size, 0);
+			break;
+		}
+	}
 	return;
 }
 
@@ -650,6 +954,275 @@ void displayTimeLed7Seg(const uint8_t *second, const uint8_t *minute, const uint
 
 	return;
 }
+
+void increaseSec()
+{
+    if (set_time.second < 59)
+    {
+        set_time.second += 1;
+    }
+    else
+    {
+        set_time.second = 0;
+        if (set_time.minute < 59)
+        {
+            set_time.minute += 1;
+        }
+        else
+        {
+            set_time.minute = 0;
+            if (set_time.hour < 23)
+            {
+                set_time.hour += 1;
+            }
+            else
+            {
+                set_time.hour = 0;
+            }
+        }
+    }
+}
+void decreaseSec()
+{
+    if (set_time.second > 0)
+    {
+        set_time.second -= 1;
+    }
+    else
+    {
+        set_time.second = 59;
+        if (set_time.minute > 0)
+        {
+            set_time.minute -= 1;
+        }
+        else
+        {
+            set_time.minute = 59;
+            if (set_time.hour > 0)
+            {
+                set_time.hour -= 1;
+            }
+            else
+            {
+                set_time.hour = 23;
+            }
+        }
+    }
+}
+void increaseMin()
+{
+    if (set_time.minute < 59)
+    {
+        set_time.minute += 1;
+    }
+    else
+    {
+        set_time.minute = 0;
+        if (set_time.hour < 23)
+        {
+            set_time.hour += 1;
+        }
+        else
+        {
+            set_time.hour = 0;
+        }
+    }
+}
+
+void decreaseMin()
+{
+    if (set_time.minute > 0)
+    {
+        set_time.minute -= 1;
+    }
+    else
+    {
+        set_time.minute = 59;
+        if (set_time.hour > 0)
+        {
+            set_time.hour -= 1;
+        }
+        else
+        {
+            set_time.hour = 23;
+        }
+    }
+}
+
+void increaseHour()
+{
+    if (set_time.hour < 23)
+    {
+        set_time.hour += 1;
+    }
+    else
+    {
+        set_time.hour = 0;
+    }
+}
+
+void decreaseHour()
+{
+    if (set_time.hour > 0)
+    {
+        set_time.hour -= 1;
+    }
+    else
+    {
+        set_time.hour = 23;
+    }
+}
+
+void increaseDay()
+{
+    if (set_time.day < 7)
+    {
+        set_time.day += 1;
+    }
+    else
+    {
+        set_time.day = 1;
+    }
+}
+
+void decreaseDay()
+{
+    if (set_time.day > 1)
+    {
+        set_time.day -= 1;
+    }
+    else
+    {
+        set_time.day = 7;
+    }
+}
+void increaseDate()
+{
+    int daysInMonth = getDaysInMonth(set_time.month, set_time.year);
+    if (set_time.date < daysInMonth)
+    {
+        set_time.date += 1;
+    }
+    else
+    {
+        set_time.date = 1;
+        if (set_time.month < 12)
+        {
+            set_time.month += 1;
+        }
+        else
+        {
+            set_time.month = 1;
+            set_time.year += 1;
+        }
+    }
+}
+
+void decreaseDate()
+{
+    if (set_time.date > 1)
+    {
+        set_time.date -= 1;
+    }
+    else
+    {
+        if (set_time.month > 1)
+        {
+            set_time.month -= 1;
+        }
+        else
+        {
+            set_time.month = 12;
+            set_time.year -= 1;
+        }
+        set_time.date = getDaysInMonth(set_time.month, set_time.year);
+    }
+}
+
+void increaseMonth()
+{
+    if (set_time.month < 12)
+    {
+        set_time.month += 1;
+    }
+    else
+    {
+        set_time.month = 1;
+        set_time.year += 1;
+    }
+
+    if(set_time.day > (uint8_t)(getDaysInMonth(set_time.month, set_time.year)))
+	{
+		set_time.day = (uint8_t)(getDaysInMonth(set_time.month, set_time.year));
+	}
+}
+
+void decreaseMonth()
+{
+    if (set_time.month > 1)
+    {
+        set_time.month -= 1;
+    }
+    else
+    {
+        set_time.month = 12;
+        set_time.year -= 1;
+    }
+
+    if(set_time.day > (uint8_t)(getDaysInMonth(set_time.month, set_time.year)))
+	{
+		set_time.day = (uint8_t)(getDaysInMonth(set_time.month, set_time.year));
+	}
+}
+
+void increaseYear()
+{
+    set_time.year += 1;
+
+    if(set_time.day > (uint8_t)(getDaysInMonth(set_time.month, set_time.year)))
+	{
+		set_time.day = (uint8_t)(getDaysInMonth(set_time.month, set_time.year));
+	}
+}
+
+void decreaseYear()
+{
+    if (set_time.year > 0) // Assuming year 0 is a valid boundary
+    {
+        set_time.year -= 1;
+    }
+
+    if(set_time.day > (uint8_t)(getDaysInMonth(set_time.month, set_time.year)))
+    {
+        set_time.day = (uint8_t)(getDaysInMonth(set_time.month, set_time.year));
+    }
+}
+
+// Helper function to get the number of days in a month
+int getDaysInMonth(int month, int year)
+{
+    switch (month)
+    {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+        {
+            return 31;
+        }
+        case 4: case 6: case 9: case 11:
+        {
+            return 30;
+        }
+        case 2:
+        {
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
+                return 29; // Leap year
+            else
+                return 28;
+        }
+        default:
+            return 30; // Default case, should not happen
+    }
+}
+
 
 /* USER CODE END 4 */
 
