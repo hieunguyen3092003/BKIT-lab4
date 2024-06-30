@@ -1,3 +1,6 @@
+# BKIT-lab4
+In lab 4 we will discuss about RTC (Read Time Clock) and IC RTC DS3231
+
 # DS3231
 # Information about bit century in DS3231
 

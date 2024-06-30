@@ -76,3 +76,6 @@ dkms.conf
 [Rr]elease
 [Dd]ebug
 .launch
+
+# Mac files 
+*.DS_Store
