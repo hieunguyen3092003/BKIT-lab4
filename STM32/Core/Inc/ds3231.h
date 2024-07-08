@@ -10,11 +10,7 @@
 
 /* Includes */
 #include <stdint.h>
-
-/* Private define */
-typedef uint8_t bool;
-#define true 1
-#define false 0
+#include "dataStructure.h"
 
 /* Register Constants */
 #define ADDRESS_SEC			0x00

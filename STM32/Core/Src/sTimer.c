@@ -46,7 +46,8 @@ void initTimer4()
 
 /**
  * @brief	set timer duration(ms)
- * @param	duration(ms)
+ * @param	delay(ms)
+ * @param	period(ms)
  */
 void sTimer2Set(uint16_t delay, uint16_t period)
 {

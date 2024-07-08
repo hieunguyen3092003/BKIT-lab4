@@ -21,6 +21,7 @@
 #include "i2c.h"
 #include "spi.h"
 #include "tim.h"
+#include "usart.h"
 #include "gpio.h"
 #include "fsmc.h"
 
@@ -167,6 +168,7 @@ int main(void)
   MX_SPI1_Init();
   MX_FSMC_Init();
   MX_I2C1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   initSystem();
 
